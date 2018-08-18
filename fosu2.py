@@ -6,6 +6,7 @@ import re
 from bs4 import BeautifulSoup
 import os
 import base64
+import time
 end = os.path.exists("C:/dont_delete.txt")#获取txt文件中的帐号密码，如果没有，要求输入
 if end == True:
 	f = open('C:/dont_delete.txt',encoding='utf-8')
@@ -14,18 +15,18 @@ if end == True:
 else:
 	print('第一次登录需要验证')
 	number = input('学号：')
-	key = input('密码（密码和学号将会保存在C盘的dont_delete.txt中）：')
-	str_encrypt=number+key
-	base64_encrypt = base64.b64encode(str_encrypt.encode('utf-8'))
+	key = input('密码（密码和学号将会保存在C盘的dont_delete.txt中,如果要重新输入密码，请删除C盘的dont_delete.txt）：')
+	base64_encrypt = str(base64.b64encode(number.encode('utf-8'))).split("'")[1]+'%%%'+str(base64.b64encode(key.encode('utf-8'))).split("'")[1]
 	f = open(r'C:/dont_delete.txt','w',encoding='utf-8')  #文件路径、操作模式、编码  # r''
-	f.write(str(base64_encrypt, encoding = "utf-8"))
+	f.write(str(base64_encrypt))
+	secret = str(base64_encrypt)
 	f.close()
 
 
 headers = {
 	'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
 }
-url = 'http://123.207.32.179/jsxsd/xk/LoginToXk'
+url = 'http://100.fosu.edu.cn/jsxsd/xk/LoginToXk'
 req = requests.get(url,headers=headers)
 req.encoding = 'gbk'
 item = input('请输入学期(举例：大二第一个学期为3，所有学期请输入0）')#选择学期
@@ -57,9 +58,9 @@ params = {
 }
 html =requests.post(url,params)
 def getcookie():#获取cookies，为下步做准备
-	data={'encoded':'MjAxNjA3MTA0MzU=%%%MzQ5Mzc0OTBneWg='}
+	data={'encoded':secret}
 	session=requests.session()
-	loginurl="http://123.207.32.179/jsxsd/xk/LoginToXk"
+	loginurl="http://100.fosu.edu.cn/jsxsd/xk/LoginToXk"
 	#具体要接口登录后才可以获得cookies
 	result=session.post(loginurl,data=data)
 	#print(result.text)
@@ -81,34 +82,34 @@ def headers():
 	'Content-Length':'26',
 	'Content-Type':'application/x-www-form-urlencoded',
 	'Cookie':getcookie(),
-	'Host':'123.207.32.179',
-	'Origin':'http://123.207.32.179',
-	'Referer':'http://123.207.32.179/jsxsd/kscj/cjcx_query',
+	'Host':'100.fosu.edu.cn',
+	'Origin':'http://100.fosu.edu.cn',
+	'Referer':'http://100.fosu.edu.cn/jsxsd/kscj/cjcx_query',
 	'Upgrade-Insecure-Requests':'1',
 	'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36' 
 	}
 	return headers1
 
 def getnames():#获取课程名称
-	url1 = 'http://123.207.32.179/jsxsd/kscj/cjcx_list'
+	url1 = 'http://100.fosu.edu.cn/jsxsd/kscj/cjcx_list'
 	html1 = requests.post(url1,params,headers = headers())
 	names = re.findall('<td align="left">(.*?)</td>',html1.text,re.S)
 	return names
 
 def getscores():#获取课程成绩
-	url2 = 'http://123.207.32.179/jsxsd/kscj/cjcx_list'
+	url2 = 'http://100.fosu.edu.cn/jsxsd/kscj/cjcx_list'
 	html2 = requests.post(url2,params,headers = headers())
 	scores = re.findall('(\d+)</a>',html2.text,re.S)
 	return scores
 
 def getlinks():#获取详细成绩的链接
-	url3 = 'http://123.207.32.179/jsxsd/kscj/cjcx_list'
+	url3 = 'http://100.fosu.edu.cn/jsxsd/kscj/cjcx_list'
 	html1 = requests.post(url3,params,headers = headers())
 	links =re.findall('<a href="javascript:openWindow(''(.*?)'',700,500)',html1.text,re.S)
 	for link in links :
 		a = re.findall("'/(.*?)',",str(link),re.S)
 		b = a[0].strip(']')
-		c = 'http://123.207.32.179/'+b
+		c = 'http://100.fosu.edu.cn/'+b
 	return links
 
 
@@ -121,7 +122,7 @@ def getmorescore(url):#获取详细成绩的详情
 def deallink(linkx):#构建详细成绩的链接
 	xlink = re.findall("'/(.*?)',",str(linkx),re.S)
 	aa = xlink[0].strip(']')
-	url2 = 'http://123.207.32.179/'+aa
+	url2 = 'http://100.fosu.edu.cn/'+aa
 	return url2
 def dealmorescore(score):#整理好详细成绩，输出算式
 	num = len(score)
@@ -155,8 +156,12 @@ if __name__ == '__main__':
 		for x in range(m):
 			a = m-x-1
 			lists.append(a)
+		time_start = time.time()
+
 		for x in lists:
-			print(names[x*2+1],'      ',scores[x],'     ',dealmorescore(getmorescore(deallink(getlinks()[x]))))
+			print(names[x*2+1],'      ',scores[x])
+		time_end = time.time()
+		print(time_end-time_start)
 	except : ConnectionResetError#我测试时经常会网络有问题
 	pass 
     # 处理异常
